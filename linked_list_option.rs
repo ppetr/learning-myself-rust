@@ -2,13 +2,15 @@
 
 #[derive(Debug)]
 struct List<T> {
-    list: Option<Box<Link<T>>>,
+    list: Node<T>,
 }
+
+type Node<T> = Option<Box<Link<T>>>;
  
 #[derive(Debug)]
 struct Link<T> {
   head: T,
-  tail: List<T>,
+  tail: Node<T>,
 }
 
 impl<T> List<T> {
@@ -17,8 +19,7 @@ impl<T> List<T> {
   }
 
   pub fn push(&mut self, elem: T) {
-    let l = List{ list: Some(Box::new(Link{ head: elem, tail: std::mem::replace(self, List::new()) })) };
-    *self = l;
+    self.list = Some(Box::new(Link{ head: elem, tail: std::mem::replace(&mut self.list, None) }));
   }
 }
 
@@ -30,7 +31,7 @@ impl<T: ToString> ToString for List<T> {
       &Some(ref b) => {
         let mut b = b;
         out.push_str(b.head.to_string().as_str());
-        while let &Some(ref x) = &b.tail.list {
+        while let &Some(ref x) = &b.tail {
           out.push_str(", ");
           out.push_str(x.head.to_string().as_str());
           b = x;
@@ -46,13 +47,11 @@ impl<T> Iterator for List<T> {
     type Item = T;
     
     fn next(&mut self) -> Option<T> {
-      let mut other = List{ list: None };
-      std::mem::swap(self, &mut other);
-      match other.list {
+      match std::mem::replace(&mut self.list, None) {
         None => None,
         Some(b) => {
           let content = *b;
-          *self = content.tail;
+          *self = List{ list: content.tail };
           Some(content.head)
         },
       }
