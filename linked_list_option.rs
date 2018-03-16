@@ -21,6 +21,76 @@ impl<T> List<T> {
   pub fn push(&mut self, elem: T) {
     self.list = Some(Box::new(Link{ head: elem, tail: std::mem::replace(&mut self.list, None) }));
   }
+
+  pub fn pop(&mut self) -> Option<T> {
+    match std::mem::replace(&mut self.list, None) {
+      Some(next_box) => {
+        let next = *next_box;
+        self.list = next.tail;
+        Some(next.head)
+      }
+      _ => None
+    }
+  }
+
+  // If the list has at least 2 elements, swaps the first two.
+  pub fn bubble(&mut self) -> bool {
+    if let Some(first) = self.pop() {
+      if let Some(second) = self.pop() {
+        self.push(first);
+        self.push(second);
+        return true;
+      } else {
+        self.push(first);
+      }
+    }
+    false
+  }
+
+
+  // Any tail of 'singleton' is silently discarded.
+  pub fn push_singleton(&mut self, mut singleton: Box<Link<T>>) {
+    std::mem::swap(&mut self.list, &mut singleton.tail);
+    self.list = Some(singleton);
+  }
+
+  pub fn pop_singleton(&mut self) -> Node<T> {
+    match std::mem::replace(&mut self.list, None) {
+      Some(mut next_box) => {
+        std::mem::swap(&mut self.list, &mut next_box.tail);
+        Some(next_box)
+      }
+      _ => None
+    }
+  }
+
+  pub fn bubble2(&mut self) -> bool {
+    if let Some(first_box) = self.pop_singleton() {
+      if let Some(second_box) = self.pop_singleton() {
+        self.push_singleton(first_box);
+        self.push_singleton(second_box);
+        return true;
+      } else {
+        self.push_singleton(first_box);
+      }
+    }
+    false
+  }
+
+
+  pub fn bubble3(&mut self) -> bool {
+    if let Some(mut first_box) = std::mem::replace(&mut self.list, None) {
+      if let Some(mut second_box) = std::mem::replace(&mut first_box.tail, None) {
+        first_box.tail = std::mem::replace(&mut second_box.tail, None);
+        second_box.tail = Some(first_box);
+        *self = List{ list: Some(second_box) };
+        return true;
+      } else {
+        *self = List{ list: Some(first_box) };
+      }
+    }
+    false
+  }
 }
 
 impl<T: ToString> ToString for List<T> {
@@ -74,4 +144,23 @@ fn main() {
      println!("{}", i);
    }
    println!("{}", sample().fold(0, |acc, len| acc + len));
+   {
+     let mut list = sample();
+     list.bubble();
+     println!("{}", list.to_string());
+     list.bubble2();
+     println!("{}", list.to_string());
+     list.bubble3();
+     println!("{}", list.to_string());
+   }
+   {
+     let mut list = List::new();
+     list.push(1);
+     list.bubble();
+     println!("{}", list.to_string());
+     list.bubble2();
+     println!("{}", list.to_string());
+     list.bubble3();
+     println!("{}", list.to_string());
+   }
 }
